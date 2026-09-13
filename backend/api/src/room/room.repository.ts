@@ -2,7 +2,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { NewRoom } from './room.interface';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateHistoryDto } from './dto/create-history.dto';
-import { createTokenWithChannel } from '../utils/create-agoraToken';
 
 @Injectable()
 export class RoomRepository {
@@ -24,40 +23,6 @@ export class RoomRepository {
     });
   }
 
-  //createAt 만든지 1시간 이상인 방을 찾음 토큰 재발급할 대상을 찾음
-  async updateToken() {
-    const oneHoursAgo = new Date();
-    oneHoursAgo.setHours(oneHoursAgo.getHours() - 1);
-
-    const rooms = await this.prisma.room.findMany({
-      where: {
-        createdAt: {
-          lte: oneHoursAgo,
-        },
-      },
-      select: {
-        uuid: true,
-      },
-    });
-    if (!rooms) return;
-    const roomsArr = rooms.map((room) => room.uuid);
-    const agoraAppId: string = process.env.AGORA_APP_ID ?? '';
-
-    roomsArr.forEach(async (uuid) => {
-      //토큰을 uuid에 맞게 재생성함
-      const aFreshToken = createTokenWithChannel(agoraAppId, uuid);
-      //갈아끼워줌
-      await this.prisma.room.update({
-        where: {
-          uuid: uuid,
-        },
-        data: {
-          agoraToken: aFreshToken,
-        },
-      });
-    });
-  }
-
   async createRoom(newRoom: NewRoom) {
     return await this.prisma.room.create({
       data: newRoom,
@@ -76,8 +41,6 @@ export class RoomRepository {
         uuid: true,
         title: true,
         category: true,
-        agoraAppId: true,
-        agoraToken: true,
         ownerId: true,
       },
     });
@@ -116,15 +79,6 @@ export class RoomRepository {
   async createHistory(newHistory: CreateHistoryDto) {
     return await this.prisma.history.create({
       data: newHistory,
-    });
-  }
-
-  async updateRoomByRefreshToken(aFreshToken: string, uuid: string) {
-    return await this.prisma.room.update({
-      data: {
-        agoraToken: aFreshToken,
-      },
-      where: { uuid: uuid },
     });
   }
 }

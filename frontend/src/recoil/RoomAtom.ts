@@ -3,8 +3,6 @@ import { atom } from 'recoil';
 export const RoomAtom = atom({
   key: 'RoomAtom',
   default: {
-    agoraAppId: '',
-    agoraToken: '',
     category: '',
     count: 0,
     createdAt: '',
@@ -34,8 +32,6 @@ export const RoomModalAtom = atom({
 export const RoomInfo = atom({
   key: 'RoomInfo',
   default: {
-    agoraAppId: '',
-    agoraToken: '',
     category: '',
     count: 0,
     createdAt: '',
@@ -53,7 +49,7 @@ export const RoomInfo = atom({
 
 export const RoomUserList = atom({
   key: 'RoomUserList',
-  default: [{ nickname: '', img: '', userId: 1 }],
+  default: [{ nickname: '', img: '', userId: 1, socketId: '' }],
 });
 
 export const RefetchAtom = atom({

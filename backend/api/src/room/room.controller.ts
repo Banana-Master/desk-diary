@@ -27,7 +27,6 @@ import {
   RoomResponseExample,
   RoomlistResponseExample,
   roomLeaveResponseExample,
-  generateTokenResponseExample,
 } from './room.response.examples';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CheckoutRoomRequestDto } from './dto/checkout-room.dto';
@@ -48,7 +47,7 @@ export class RoomController {
   })
   @ApiResponse({
     status: 200,
-    description: '존재하는 방 목록의 정보(agoraToken 포함)를 조회합니다',
+    description: '존재하는 방 목록의 정보를 조회합니다',
     content: {
       examples: RoomlistResponseExample,
     },
@@ -61,8 +60,7 @@ export class RoomController {
   @ApiOperation({ summary: '방 생성' })
   @ApiResponse({
     status: 201,
-    description:
-      '방 생성시 agoraToken토큰을 생성하며, 생성된 방의 정보(agoraToken 포함)와 방의 owner 정보를 함께 반환합니다.',
+    description: '생성된 방의 정보와 방의 owner 정보를 함께 반환합니다.',
     content: {
       examples: RoomResponseExample,
     },
@@ -116,7 +114,7 @@ export class RoomController {
   @Get(':uuid')
   @ApiOperation({
     summary: 'UUID로 방 조회',
-    description: '방의 고유 UUID로 정보(agoratoken 포함)를 조회합니다.',
+    description: '방의 고유 UUID로 정보를 조회합니다.',
   })
   @ApiResponse({
     status: 200,
@@ -227,23 +225,6 @@ export class RoomController {
     }
     return false;
   }
-  //request a fresh token using channel name
-  // 유저의 요청을 검증함
-  //토큰을 발급해서 클라에게 보내줌
-  @Get('generate-aFreshToken/:uuid')
-  @ApiOperation({ summary: '아고라 토큰 재발급' })
-  @ApiResponse({
-    status: 200,
-    description: '재발급한 아고라 토큰을 반환합니다.',
-    content: {
-      examples: generateTokenResponseExample,
-    },
-  })
-  async generateToken(@Param('uuid') uuid: string): Promise<{ token: string }> {
-    const token = await this.roomService.generateAgoraToken(uuid);
-    return { token };
-  }
-
   // @Delete('socket/:uuid')
   // @ApiOperation({ summary: '소켓 방 삭제' })
   // async deleteRoomBySocket(

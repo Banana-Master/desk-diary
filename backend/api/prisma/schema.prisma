@@ -38,8 +38,6 @@ model User {
 model Room {
   roomId        Int       @id @default(autoincrement())
   uuid          String    @unique
-  agoraAppId    String
-  agoraToken    String    @unique
   title         String
   note          String?
   ownerId       Int

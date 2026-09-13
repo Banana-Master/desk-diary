@@ -118,7 +118,7 @@
 
 #### Frontend & Backend
 <p>
-  <img src="https://img.shields.io/badge/agora-%23099DFD?style=for-the-badge&logo=agora&logoColor=white">
+  <img src="https://img.shields.io/badge/webrtc-333333?style=for-the-badge&logo=webrtc&logoColor=white">
   <img src="https://img.shields.io/badge/socket.io-%23010101?style=for-the-badge&logo=socket.io&logoColor=white"> 
 </p>
 

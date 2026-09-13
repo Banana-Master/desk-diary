@@ -346,9 +346,35 @@ export class RoomchatsService {
 
     const room = JSON.parse(roomData);
     const userListObj = room['userList'];
-    const userListArr = Object.values(userListObj);
+    // 피어별 point-to-point WebRTC 시그널링(offer/answer/ICE)을 위해
+    // 각 유저 정보에 socketId(=Redis에 키로 쓰인 client.id)를 함께 내려줌
+    const userListArr = Object.entries(userListObj).map(
+      ([socketId, user]) => ({
+        ...(user as object),
+        socketId,
+      }),
+    );
 
     server.to(uuid).emit(userEvent, { nickname, userListArr });
+  }
+
+  async getRoomUsers(client: Socket, uuid: string): Promise<void> {
+    const roomData = await Redis.get(`room:${uuid}`);
+    if (!roomData) {
+      client.emit('room-users', { userListArr: [] });
+      return;
+    }
+
+    const room = JSON.parse(roomData);
+    const userListObj = room['userList'];
+    const userListArr = Object.entries(userListObj).map(
+      ([socketId, user]) => ({
+        ...(user as object),
+        socketId,
+      }),
+    );
+
+    client.emit('room-users', { userListArr });
   }
 
   async deleteDocumentByUuid(uuid: string): Promise<any> {

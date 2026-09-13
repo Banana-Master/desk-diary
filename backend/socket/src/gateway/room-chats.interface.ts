@@ -11,3 +11,16 @@ export interface IMessage {
   message: string;
   img: string;
 }
+
+export interface IWebRTCSignal {
+  uuid: string;
+  targetSocketId: string;
+  sdp?: RTCSessionDescriptionInit;
+  candidate?: RTCIceCandidateInit;
+}
+
+export interface IPeerMediaState {
+  uuid: string;
+  micOn: boolean;
+  camOn: boolean;
+}

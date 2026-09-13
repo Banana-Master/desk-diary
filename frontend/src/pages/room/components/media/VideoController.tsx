@@ -1,6 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { ICameraVideoTrack, IMicrophoneAudioTrack } from 'agora-rtc-react';
-import { useClient } from './config';
+import React, { useCallback, useState } from 'react';
 import { MdScreenShare, MdStopScreenShare } from 'react-icons/md';
 import {
   FaVolumeMute,
@@ -10,47 +8,55 @@ import {
 } from 'react-icons/fa';
 import styled from 'styled-components';
 import Screenshare from './Screenshare';
-import { isScreenshare } from '../../../../recoil/CamAtom';
-import { useRecoilState } from 'recoil';
 import { toast } from 'sonner';
-import {blue} from '../../../../images/character'
+import { blue } from '../../../../images/character';
+import socket from '../../socketInstance';
+
+type PeerMediaState = { micOn: boolean; camOn: boolean };
 
 type VideoControllerProps = {
-  tracks: [IMicrophoneAudioTrack, ICameraVideoTrack];
-  setStart: React.Dispatch<React.SetStateAction<boolean>>;
-  setInCall: React.Dispatch<React.SetStateAction<boolean>>;
+  localStream: MediaStream;
+  localMediaState: PeerMediaState;
+  setLocalMediaState: React.Dispatch<React.SetStateAction<PeerMediaState>>;
+  peers: Map<string, RTCPeerConnection>;
+  uuid: string;
 };
 
 const VideoController: React.FC<VideoControllerProps> = ({
-  tracks,
-  setStart,
-  setInCall,
+  localStream,
+  localMediaState,
+  setLocalMediaState,
+  peers,
+  uuid,
 }) => {
-  const client = useClient();
-  const [trackState, setTrackState] = useState({ video: true, audio: true });
   const [screenshare, setScreenshare] = useState(false);
-  const [screenShareTrack, setScreenShareTrack] = useRecoilState(isScreenshare);
 
-  const mute = async (type: 'audio' | 'video') => {
-    // 컴, 오디어 끄기
+  const emitMediaState = (next: PeerMediaState) => {
+    socket.emit('peer-media-state', { uuid, ...next });
+  };
+
+  const mute = (type: 'audio' | 'video') => {
+    if (screenshare) {
+      toast.error(
+        type === 'audio'
+          ? '화면 공유 중에는 마이크를 설정할 수 없습니다.'
+          : '화면 공유 중에는 카메라를 설정할 수 없습니다.',
+      );
+      return;
+    }
+
     if (type === 'audio') {
-      if(screenshare) {
-        toast.error('화면 공유 중에는 마이크를 설정할 수 없습니다.');
-        return ;
-      }
-      await tracks[0].setEnabled(!trackState.audio);
-      setTrackState(ps => {
-        return { ...ps, audio: !ps.audio };
-      });
-    } else if (type === 'video') {
-      if(screenshare) {
-        toast.error('화면 공유 중에는 카메라를 설정할 수 없습니다.');
-        return ;
-      }
-      await tracks[1].setEnabled(!trackState.video);
-      setTrackState(ps => {
-        return { ...ps, video: !ps.video };
-      });
+      const track = localStream.getAudioTracks()[0];
+      track.enabled = !track.enabled;
+      const next = { ...localMediaState, micOn: track.enabled };
+      setLocalMediaState(next);
+      emitMediaState(next);
+    } else {
+      const track = localStream.getVideoTracks()[0];
+      track.enabled = !track.enabled;
+      const next = { ...localMediaState, camOn: track.enabled };
+      setLocalMediaState(next);
+      emitMediaState(next);
     }
   };
 
@@ -58,27 +64,25 @@ const VideoController: React.FC<VideoControllerProps> = ({
     setScreenshare(prev => !prev);
   }, []);
 
-
   return (
     <Controller>
       <button onClick={() => mute('audio')}>
-        {trackState.audio ? (
+        {localMediaState.micOn ? (
           <FaVolumeUp />
         ) : (
           <FaVolumeMute style={{ color: '#e90000' }} />
         )}
       </button>
       <button onClick={() => mute('video')}>
-        {trackState.video ? (
+        {localMediaState.camOn ? (
           <FaVideo />
         ) : (
           <FaVideoSlash style={{ color: '#e90000' }} />
         )}
       </button>
-      {!trackState.video && (
+      {!localMediaState.camOn && (
         <NonCam>
-          {/* <FaVideoSlash style={{ fontSize: '50px', color: '#e90000' }} /> */}
-          <img src={blue} alt='' />
+          <img src={blue} alt="" />
         </NonCam>
       )}
       <button onClick={handleScreenShare}>
@@ -90,10 +94,8 @@ const VideoController: React.FC<VideoControllerProps> = ({
       </button>
       {screenshare && (
         <Screenshare
-          preTracks={tracks}
-          trackState={trackState}
-          screenshare={screenshare}
-          setStart={setStart}
+          peers={peers}
+          cameraTrack={localStream.getVideoTracks()[0]}
           setScreenshare={setScreenshare}
         />
       )}

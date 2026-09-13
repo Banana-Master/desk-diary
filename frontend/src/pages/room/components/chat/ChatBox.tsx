@@ -24,7 +24,12 @@ type MessageData = {
 
 type UserListPayload = {
   nickname: string;
-  userListArr: { nickname: string; img: string; userId: number }[];
+  userListArr: {
+    nickname: string;
+    img: string;
+    userId: number;
+    socketId: string;
+  }[];
 };
 
 type AllChatItem =

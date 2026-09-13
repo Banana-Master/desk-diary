@@ -4,8 +4,6 @@ faker.seed(123);
 export const mockRoom = {
   roomId: faker.number.int(),
   uuid: mockUuid,
-  agoraAppId: faker.string.uuid(),
-  agoraToken: faker.string.uuid(),
   title: faker.lorem.word(),
   note: faker.lorem.sentence(),
   ownerId: faker.number.int(),

@@ -1,65 +1,44 @@
-import React, { useEffect, useState } from 'react';
-import {
-  IAgoraRTCRemoteUser,
-  IMicrophoneAudioTrack,
-  ICameraVideoTrack,
-  AgoraVideoPlayer,
-} from 'agora-rtc-react';
+import React from 'react';
 import DefaultScreen from './DefaultScreen';
 import styled from 'styled-components';
-import socket from '../../socketInstance';
 import { RoomUserList } from '../../../../recoil/RoomAtom';
-import { useRecoilState } from 'recoil';
+import { useRecoilValue } from 'recoil';
 import { useQuery } from 'react-query';
 import { fetchUser } from '../../../../axios/api';
 import { FaVideoSlash, FaVolumeMute } from 'react-icons/fa';
-import { blue } from '../../../../images/character';
 import loading from '../../../../images/loading.gif';
 
+type PeerMediaState = { micOn: boolean; camOn: boolean };
+
 type VideosProps = {
-  users: IAgoraRTCRemoteUser[];
-  tracks: [IMicrophoneAudioTrack, ICameraVideoTrack];
-  volumes: any;
+  localStream: MediaStream;
+  localMediaState: PeerMediaState;
+  remoteStreams: Record<string, MediaStream>;
+  mediaState: Record<string, PeerMediaState>;
+  volumes: Record<string, number>;
 };
 
-type UserListPayload = {
-  nickname: string;
-  userListArr: { nickname: string; img: string; userId: number }[];
-};
+const DEFAULT_PEER_MEDIA_STATE: PeerMediaState = { micOn: true, camOn: true };
 
-const Videos: React.FC<VideosProps> = ({ users, tracks, volumes }) => {
-  const [roomUserList, setRoomUserList] = useRecoilState(RoomUserList);
-  const [micsStatus, setMicsStatus] = useState<{ [uid: number]: boolean }>({});
+const Videos: React.FC<VideosProps> = ({
+  localStream,
+  localMediaState,
+  remoteStreams,
+  mediaState,
+  volumes,
+}) => {
+  const roomUserList = useRecoilValue(RoomUserList);
 
-  // userId를 사용해서 userList에서 닉네임 찾기
-  const getNicknameByUserId = (userId: number) => {
-    const user = roomUserList.find(user => user.userId === userId);
+  const getNicknameBySocketId = (socketId: string) => {
+    const user = roomUserList.find(user => user.socketId === socketId);
     return user ? user.nickname : null;
   };
 
   // 볼륨 레벨에 따라서 색상을 결정하는 함수
   const getBorderColorByVolume = (volume: number) => {
-    // if (volume > 70) return 'red';
-    // if (volume > 50) return 'orange'; // 볼륨이 5 이상이면 빨간색
-    if (volume > 18) return 'green'; // 볼륨이 3 이상이면 주황색
-    return 'var(--gray-09)'; // 그 외는 녹색
+    if (volume > 18) return 'green';
+    return 'var(--gray-09)';
   };
-
-  // 본인의 오디오 트랙 ID를 가져옴
-  const myAudioTrackId = tracks[0].getTrackId();
-
-  // 나가고 들어온 유저 닉네임 받아오기
-  useEffect(() => {
-    socket.on('user-list', (payload: UserListPayload) => {
-      const { nickname, userListArr } = payload;
-      setRoomUserList(userListArr);
-    });
-
-    return () => {
-      socket.off('user-list');
-      socket.off('left-user');
-    };
-  }, [socket]);
 
   const { data, isLoading, error } = useQuery('cam-user', fetchUser);
   if (isLoading) {
@@ -72,79 +51,79 @@ const Videos: React.FC<VideosProps> = ({ users, tracks, volumes }) => {
 
   return (
     <Container>
-      <Video border={getBorderColorByVolume(volumes[myAudioTrackId] || 0)}>
-        <AgoraVideoPlayer
-          style={{
-            height: '225px',
-            width: '400px',
-            backgroundColor: 'blue',
-            zIndex: '5',
-          }}
-          className="video"
-          videoTrack={tracks[1]}
-        />
+      <Video border={getBorderColorByVolume(volumes.local || 0)}>
+        {localMediaState.camOn ? (
+          <LocalVideo
+            autoPlay
+            playsInline
+            muted
+            ref={el => {
+              if (el && el.srcObject !== localStream) {
+                el.srcObject = localStream;
+              }
+            }}
+          />
+        ) : (
+          <DefaultScreen />
+        )}
         <Nickname>{data.nickname}</Nickname>
+        {!localMediaState.micOn && (
+          <NonAudio>
+            <FaVolumeMute style={{ fontSize: '25px', color: '#e90000' }} />
+          </NonAudio>
+        )}
       </Video>
 
-      {users.length > 0 &&
-        users.map(user => {
-          if (user.videoTrack) {
-            const volumeLevel = volumes[user.uid] || 0; // 기본 볼륨 값은 0으로 설정
-            const borderColor = getBorderColorByVolume(volumeLevel);
-            const nickname = getNicknameByUserId(+user.uid);
-            return (
-              <Video key={user.uid} border={borderColor}>
-                <ClosedCam>
-                  <FaVideoSlash
-                    style={{ fontSize: '50px', color: '#e90000' }}
-                  />
-                </ClosedCam>
+      {Object.entries(remoteStreams).map(([socketId, stream]) => {
+        const { micOn, camOn } =
+          mediaState[socketId] ?? DEFAULT_PEER_MEDIA_STATE;
+        const volumeLevel = volumes[socketId] || 0;
+        const borderColor = getBorderColorByVolume(volumeLevel);
+        const nickname = getNicknameBySocketId(socketId);
 
-                <AgoraVideoPlayer
-                  style={{
-                    height: '225px',
-                    width: '400px',
-                    display: 'inline',
-                    backgroundColor: 'black',
-                    zIndex: '5',
-                    backgroundImage: `url(${loading})`,
-                    backgroundSize: '200px', // 이미지가 div에 꽉 차도록
-                    backgroundPosition: 'center center', // 이미지가 div 중앙에 오도록
-                    backgroundRepeat: 'no-repeat',
-                  }}
-                  className="video"
-                  videoTrack={user.videoTrack}
-                  key={user.uid}
-                />
-                {nickname && <Nickname type="button">{nickname}</Nickname>}
-                {!user.audioTrack && (
-                  <NonAudio>
-                    <FaVolumeMute
-                      style={{ fontSize: '25px', color: '#e90000' }}
-                    />
-                  </NonAudio>
-                )}
-              </Video>
-            );
-          } else {
-            const nickname = getNicknameByUserId(+user.uid);
-            const volumeLevel = volumes[user.uid] || 0; // 기본 볼륨 값은 0으로 설정
-            const borderColor = getBorderColorByVolume(volumeLevel);
-            return (
-              <Video border={borderColor}>
-                <DefaultScreen key={user.uid} />
-                {nickname && <Nickname type="button">{nickname}</Nickname>}
-                {!user.audioTrack && (
-                  <NonAudio>
-                    <FaVolumeMute
-                      style={{ fontSize: '25px', color: '#e90000' }}
-                    />
-                  </NonAudio>
-                )}
-              </Video>
-            );
-          }
-        })}
+        if (camOn) {
+          return (
+            <Video key={socketId} border={borderColor}>
+              <ClosedCam>
+                <FaVideoSlash style={{ fontSize: '50px', color: '#e90000' }} />
+              </ClosedCam>
+              <RemoteVideo
+                autoPlay
+                playsInline
+                style={{
+                  backgroundImage: `url(${loading})`,
+                  backgroundSize: '200px',
+                  backgroundPosition: 'center center',
+                  backgroundRepeat: 'no-repeat',
+                }}
+                ref={el => {
+                  if (el && el.srcObject !== stream) {
+                    el.srcObject = stream;
+                  }
+                }}
+              />
+              {nickname && <Nickname type="button">{nickname}</Nickname>}
+              {!micOn && (
+                <NonAudio>
+                  <FaVolumeMute style={{ fontSize: '25px', color: '#e90000' }} />
+                </NonAudio>
+              )}
+            </Video>
+          );
+        }
+
+        return (
+          <Video key={socketId} border={borderColor}>
+            <DefaultScreen />
+            {nickname && <Nickname type="button">{nickname}</Nickname>}
+            {!micOn && (
+              <NonAudio>
+                <FaVolumeMute style={{ fontSize: '25px', color: '#e90000' }} />
+              </NonAudio>
+            )}
+          </Video>
+        );
+      })}
     </Container>
   );
 };
@@ -177,6 +156,24 @@ const Nickname = styled.button`
   border-radius: 10px;
   border: none;
   cursor: auto;
+`;
+
+const LocalVideo = styled.video`
+  height: 225px;
+  width: 400px;
+  background-color: blue;
+  z-index: 5;
+  object-fit: cover;
+  transform: scaleX(-1);
+`;
+
+const RemoteVideo = styled.video`
+  height: 225px;
+  width: 400px;
+  display: inline;
+  background-color: black;
+  z-index: 5;
+  object-fit: cover;
 `;
 
 const Video = styled.div<{ border: string }>`

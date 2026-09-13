@@ -14,8 +14,6 @@ import socket from '../../room/socketInstance';
 type JoinRoomModal = {
   setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
   room: {
-    agoraAppId: string;
-    agoraToken: string;
     category: string;
     count: number;
     createdAt: string;
@@ -63,8 +61,6 @@ const JoinRoomModal: React.FC<JoinRoomModal> = ({ setIsOpen, room }) => {
       );
       // console.log(response);
       setRoomInfo({
-        agoraAppId: room.agoraAppId,
-        agoraToken: room.agoraToken,
         category: room.category,
         count: room.count,
         createdAt: room.createdAt,
@@ -85,6 +81,7 @@ const JoinRoomModal: React.FC<JoinRoomModal> = ({ setIsOpen, room }) => {
         nickname: data!.nickname,
         uuid: room.uuid,
         img: data!.profileImage,
+        userId: data!.userId,
       }, (response:any) => {
         // 서버로부터의 응답을 여기서 처리
         if (response.success) {
