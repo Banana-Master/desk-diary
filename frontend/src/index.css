@@ -1,0 +1,6 @@
+@import 'reset.css';
+
+@font-face {
+	font-family: "Pretendard";
+	src: url('./fonts/Pretendard-Regular.woff');
+}
