@@ -1,4 +1,3 @@
-import AgoraRTC from 'agora-rtc-sdk-ng';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRecoilState } from 'recoil';
@@ -85,19 +84,11 @@ const MediaSetup: React.FC<MediaSetupProps> = () => {
 
   const getCamerasAndMics = async () => {
     try {
-      const cameraList = await AgoraRTC.getCameras();
-      // console.log('카메라 목록', cameraList);
-      setCameras(cameraList);
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      setCameras(devices.filter(device => device.kind === 'videoinput'));
+      setMics(devices.filter(device => device.kind === 'audioinput'));
     } catch (error) {
-      // console.error('카메라 목록을 가져오는 중 오류 발생:', error);
-    }
-
-    try {
-      const micList = await AgoraRTC.getMicrophones();
-      // console.log('마이크 목록:', micList);
-      setMics(micList);
-    } catch (error) {
-      // console.error('마이크 목록을 가져오지 못했습니다.', error);
+      // console.error('미디어 장치 목록을 가져오는 중 오류 발생:', error);
     }
   };
 

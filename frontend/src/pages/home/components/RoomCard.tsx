@@ -19,8 +19,6 @@ import { study_color, hobby_color } from '../../../images/main';
 
 type RoomCardProps = {
   room: {
-    agoraAppId: string;
-    agoraToken: string;
     category: string;
     count: number;
     createdAt: string;

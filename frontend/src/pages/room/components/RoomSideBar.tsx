@@ -19,7 +19,12 @@ type RoomSideBarProps = {
 
 type UserListPayload = {
   nickname: string;
-  userListArr: { nickname: string; img: string; userId: number }[];
+  userListArr: {
+    nickname: string;
+    img: string;
+    userId: number;
+    socketId: string;
+  }[];
 };
 
 const RoomSideBar: React.FC<RoomSideBarProps> = ({maxUser}) => {

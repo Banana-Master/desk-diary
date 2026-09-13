@@ -19,8 +19,6 @@ import ModalBackground from '../../../components/ModalBackground';
 type SetMediaModal = {
   setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
   room: {
-    agoraAppId: string;
-    agoraToken: string;
     category: string;
     count: number;
     createdAt: string;
@@ -70,8 +68,6 @@ const SetMediaModal: React.FC<SetMediaModal> = ({ setIsOpen, room }) => {
         },
       );
       setRoomInfo({
-        agoraAppId: room.agoraAppId,
-        agoraToken: room.agoraToken,
         category: room.category,
         count: room.count,
         createdAt: room.createdAt,

@@ -1,6 +1,4 @@
 interface room {
-  agoraAppId: string;
-  agoraToken: string;
   category: string;
   count: number;
   createdAt: string;

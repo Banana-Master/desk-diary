@@ -1,103 +1,71 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { ICameraVideoTrack, IMicrophoneAudioTrack } from 'agora-rtc-react';
-import { useClient, useScreenVideoTrack } from './config';
-import { isScreenshare } from '../../../../recoil/CamAtom';
-import { useRecoilState } from 'recoil';
+import React, { useEffect, useRef } from 'react';
 
 type ScreenshareProps = {
-  preTracks: [IMicrophoneAudioTrack, ICameraVideoTrack];
-  trackState: { video: boolean; audio: boolean };
-  screenshare: boolean;
-  setStart: React.Dispatch<React.SetStateAction<boolean>>;
+  peers: Map<string, RTCPeerConnection>;
+  cameraTrack: MediaStreamTrack | null;
   setScreenshare: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
+/**
+ * 화면 공유 중에는 각 피어 커넥션의 비디오 sender 트랙을 화면 공유 트랙으로
+ * 바꿔치기(replaceTrack)하고, 중지되면 원래 카메라 트랙으로 되돌린다.
+ * 본인 화면(로컬 미리보기)은 그대로 카메라를 보여주므로 건드리지 않는다.
+ */
 const Screenshare: React.FC<ScreenshareProps> = ({
-  preTracks, // 이전에 사용된 오디오와 비디오 트랙을 포함하는 배열
-  trackState, // 현재 비디오와 오디오의 상태(켜짐/꺼짐)를 나타내는 객체
-  screenshare, // 화면 공유가 활성화되어 있는지 나타내는 boolean
-  setStart, // 화면 공유를 시작할 때 상태를 나타내는 함수
-  setScreenshare, // 화면 공유 상태를 설정하는 함수
+  peers,
+  cameraTrack,
+  setScreenshare,
 }) => {
-  const client = useClient();
-  const { ready, tracks, error } = useScreenVideoTrack();
-  const [screenShareTrack, setScreenShareTrack] = useRecoilState(isScreenshare);
-
-  /**
-   * 첫 렌더링을 확인. 컴포넌트가 마운트된 후 첫 업데이트가 일어났는지 여부 추적
-   */
-  const firstRenderRef = useRef(true);
-
-  const unpublish = async () => {
-    if (!Array.isArray(tracks) && tracks !== undefined) {
-      await client.unpublish(tracks);
-      tracks.close();
-
-      setTimeout(() => {
-        if (trackState.video) {
-          client.publish(preTracks[1]);
-        }
-      }, 3000);
-
-    } else {
-      // console.log('else');
-    }
-  };
+  const screenTrackRef = useRef<MediaStreamTrack | null>(null);
 
   useEffect(() => {
-    // console.log('useEffect');
-    const pulishScreenShare = async () => {
-      // await client.unpublish(preTracks[1]) // 현재 공유되고 있는 비디오 트랙을 비공개
-      // await client.publish(tracks) // 새로운 화면 공유 트랙을 공개
-      try {
-        // 기존 비디오 트랙을 비공개하고 완료될 때까지 기다립니다.
-        await client.unpublish(preTracks[1]);
+    let cancelled = false;
 
-        // 새로운 화면 공유 트랙을 공개합니다.
-        setTimeout(() => {
-          client.publish(tracks);
-          // console.log('새 화면 공유 트랙 공개 성공');
-        }, 3000);
+    const start = async () => {
+      try {
+        const screenStream = await navigator.mediaDevices.getDisplayMedia({
+          video: true,
+        });
+        const screenTrack = screenStream.getVideoTracks()[0];
+
+        if (cancelled) {
+          screenTrack.stop();
+          return;
+        }
+
+        screenTrackRef.current = screenTrack;
+        peers.forEach(pc => {
+          const sender = pc
+            .getSenders()
+            .find(sender => sender.track?.kind === 'video');
+          sender?.replaceTrack(screenTrack);
+        });
+
+        // 브라우저 자체의 "공유 중지" 버튼을 눌렀을 때도 원래 카메라로 복귀
+        screenTrack.onended = () => setScreenshare(false);
       } catch (error) {
-        // console.error('화면 공유 트랙 처리 중 오류 발생:', error);
-        // 에러 핸들링을 여기에서 해주세요.
+        setScreenshare(false);
       }
     };
 
-    if (ready && tracks) {
-      // console.log('❗화면공유 함수실행');
-      pulishScreenShare(); // 화면공유의 ready, tracks가 준비되면 (트랙 사용이 가능하면) 함수 실행
-    }
-
-    if (error) {
-      // console.log('useEffect 아래 에러');
-      setScreenshare(false);
-    }
+    start();
 
     return () => {
-      // console.log('클리어함수');
-      unpublish();
-      if (firstRenderRef.current) {
-        firstRenderRef.current = false;
-        return;
-      }
-      if (!error && !Array.isArray(tracks)) {
-        client.unpublish(tracks);
-        tracks.close();
+      cancelled = true;
+      const screenTrack = screenTrackRef.current;
+      if (screenTrack) {
+        peers.forEach(pc => {
+          const sender = pc
+            .getSenders()
+            .find(sender => sender.track === screenTrack);
+          if (cameraTrack) sender?.replaceTrack(cameraTrack);
+        });
+        screenTrack.stop();
+        screenTrackRef.current = null;
       }
     };
-  }, [
-    setStart,
-    setScreenshare,
-    screenshare,
-    client,
-    preTracks,
-    trackState,
-    tracks,
-    ready,
-    error,
-  ]);
+  }, [peers, cameraTrack, setScreenshare]);
 
-  return <div></div>;
+  return null;
 };
 export default Screenshare;

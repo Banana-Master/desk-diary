@@ -83,8 +83,6 @@ jobs:
         run: |
           touch .env
           echo "MODE=${{ secrets.MODE }}" >> .env
-          echo "AGORA_APP_ID=${{ secrets.AGORA_APP_ID }}" >> .env
-          echo "AGORA_APP_CERTIFICATE=${{ secrets.AGORA_APP_CERTIFICATE }}" >> .env
           echo "MONGO_URL=${{ secrets.MONGO_URL }}" >> .env
           echo "API_SERVER_URL=${{ secrets.API_SERVER_URL }}" >> .env
           echo "SOCKET_SECRET_KEY=${{ secrets.SOCKET_SECRET_KEY }}" >> .env

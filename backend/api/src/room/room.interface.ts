@@ -4,8 +4,6 @@ export interface NewRoom {
   note: string;
   category: string;
   uuid: string;
-  agoraAppId: string;
-  agoraToken: string;
   roomThumbnail: string;
   ownerId: number;
   count: number;

@@ -12,7 +12,12 @@ import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
 import { LocalDateTime } from '@js-joda/core';
 import { RoomchatsService } from './room-chats.service';
-import { IMessage, IRoomRequest } from './room-chats.interface';
+import {
+  IMessage,
+  IRoomRequest,
+  IWebRTCSignal,
+  IPeerMediaState,
+} from './room-chats.interface';
 
 @WebSocketGateway({ cors: true, allowEIO3: true })
 export class RoomchatsGateway
@@ -84,6 +89,60 @@ export class RoomchatsGateway
     @MessageBody() { userId }: IRoomRequest,
   ): void {
     this.roomchatsService.logOut(client, this.server, userId);
+  }
+
+  // WebRTC 시그널링 중계 (offer/answer/ICE candidate는 방 전체가 아닌 특정 상대에게만 전달)
+  @SubscribeMessage('webrtc-offer')
+  handleWebRTCOffer(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() { targetSocketId, sdp }: IWebRTCSignal,
+  ): void {
+    this.server
+      .to(targetSocketId)
+      .emit('webrtc-offer', { fromSocketId: client.id, sdp });
+  }
+
+  @SubscribeMessage('webrtc-answer')
+  handleWebRTCAnswer(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() { targetSocketId, sdp }: IWebRTCSignal,
+  ): void {
+    this.server
+      .to(targetSocketId)
+      .emit('webrtc-answer', { fromSocketId: client.id, sdp });
+  }
+
+  @SubscribeMessage('webrtc-ice-candidate')
+  handleWebRTCIceCandidate(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() { targetSocketId, candidate }: IWebRTCSignal,
+  ): void {
+    this.server
+      .to(targetSocketId)
+      .emit('webrtc-ice-candidate', { fromSocketId: client.id, candidate });
+  }
+
+  // 마이크/카메라 on-off 상태를 같은 방의 나머지 피어에게만 알림
+  @SubscribeMessage('peer-media-state')
+  handlePeerMediaState(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() { uuid, micOn, camOn }: IPeerMediaState,
+  ): void {
+    client.to(uuid).emit('peer-media-state', {
+      socketId: client.id,
+      micOn,
+      camOn,
+    });
+  }
+
+  // 입장 시점에 이미 방에 있는 참가자 목록을 요청 (join 브로드캐스트 타이밍에
+  // 의존하지 않고 WebRTC offer를 보낼 대상을 안전하게 파악하기 위함)
+  @SubscribeMessage('get-room-users')
+  handleGetRoomUsers(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() { uuid }: IRoomRequest,
+  ): void {
+    this.roomchatsService.getRoomUsers(client, uuid);
   }
 
   //회원탈퇴로 인한 방 퇴장시키기

@@ -29,7 +29,6 @@ export class HistoryService {
       select: {
         roomId: true,
         uuid: true,
-        agoraToken: true,
         title: true,
         note: true,
         nowHeadcount: true,

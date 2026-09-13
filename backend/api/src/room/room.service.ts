@@ -1,5 +1,4 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
-import { createTokenWithChannel } from '../utils/create-agoraToken';
 import { ImageService } from '../image/image.service';
 import { UserService } from '../user/user.service';
 import { v4 as uuidv4 } from 'uuid';
@@ -36,16 +35,12 @@ export class RoomService {
     const uuid = uuidv4(); //고유한 문자열 생성
     const user = await this.userService.findUserByUserId(userId);
     if (!user) throw UserException.userNotFound();
-    const agoraAppId: string = process.env.AGORA_APP_ID ?? '';
-    const agoraToken = createTokenWithChannel(agoraAppId, uuid);
     const newRoom: NewRoom = {
       title,
       maxHeadcount: +maxHeadcount,
       note,
       category,
       uuid,
-      agoraAppId,
-      agoraToken,
       roomThumbnail,
       ownerId: userId,
       count: 0,
@@ -62,22 +57,6 @@ export class RoomService {
   async handleRoomDataCron() {
     this.logger.debug('매일 새벽3시 마다 실행 만든지 7일 지난 방 삭제');
     await this.roomRepository.deleteOldData();
-  }
-
-  @Cron('0 0 * * *', {
-    timeZone: 'Asia/Seoul',
-  })
-  async handleNoonTokenCron() {
-    this.logger.debug('자정마다 토큰 재발급');
-    await this.roomRepository.updateToken();
-  }
-
-  @Cron('0 12 * * *', {
-    timeZone: 'Asia/Seoul',
-  })
-  async handleMidnightTokenCron() {
-    this.logger.debug('정오마다 토큰 재발급');
-    await this.roomRepository.updateToken();
   }
 
   async getRoomListAll() {
@@ -188,21 +167,6 @@ export class RoomService {
       message: '썸네일이 성공적으로 업로드되었습니다',
       roomThumbnail: uploadedFile.Location,
     };
-  }
-
-  async generateAgoraToken(uuid: string): Promise<string> {
-    const findRoom = await this.roomRepository.findRoomByUuid(uuid);
-    if (!findRoom) throw RoomException.roomNotFound();
-
-    const agoraAppId: string = process.env.AGORA_APP_ID ?? '';
-    const aFreshToken = createTokenWithChannel(agoraAppId, uuid);
-
-    const roomUpdateWithaFreshToken =
-      await this.roomRepository.updateRoomByRefreshToken(aFreshToken, uuid);
-    if (!roomUpdateWithaFreshToken) throw RoomException.roomTokenUpdateError();
-
-    const token = roomUpdateWithaFreshToken.agoraToken;
-    return token;
   }
 
   // async addRandomRoomToDatabase() {

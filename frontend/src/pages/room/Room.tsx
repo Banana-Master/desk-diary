@@ -129,8 +129,6 @@ const Room: React.FC<RoomProps> = () => {
       });
       const data = response.data.findRoom;
       setRoomInfo({
-        agoraAppId: data.agoraAppId,
-        agoraToken: data.agoraToken,
         category: data.category,
         count: data.count,
         createdAt: data.createdAt,
