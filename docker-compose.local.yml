@@ -1,0 +1,35 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: desk-diary-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root1234
+      MYSQL_DATABASE: desk_diary
+    ports:
+      - '3306:3306'
+    volumes:
+      - desk-diary-mysql-data:/var/lib/mysql
+
+  mongo:
+    image: mongo:7
+    container_name: desk-diary-mongo
+    restart: unless-stopped
+    ports:
+      - '27017:27017'
+    volumes:
+      - desk-diary-mongo-data:/data/db
+
+  redis:
+    image: redis:7-alpine
+    container_name: desk-diary-redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - desk-diary-redis-data:/data
+
+volumes:
+  desk-diary-mysql-data:
+  desk-diary-mongo-data:
+  desk-diary-redis-data:
