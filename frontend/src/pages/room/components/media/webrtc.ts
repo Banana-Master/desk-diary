@@ -32,6 +32,7 @@ export const createPeerConnection = (): RTCPeerConnection => {
 export const createVolumeMeter = (
   stream: MediaStream,
   onLevel: (level: number) => void,
+  intervalMs = 200,
 ): (() => void) => {
   const audioContext = new AudioContext();
   const source = audioContext.createMediaStreamSource(stream);
@@ -40,18 +41,18 @@ export const createVolumeMeter = (
   source.connect(analyser);
 
   const data = new Uint8Array(analyser.frequencyBinCount);
-  let rafId: number;
 
-  const tick = () => {
+  // 매 프레임(60fps)이 아니라 일정 주기로만 상태를 갱신한다.
+  // 자주 갱신하면 리액트 리렌더가 잦아져 영상 <video> 엘리먼트의
+  // srcObject가 반복 재할당되며 화면이 깜빡이는 문제가 생길 수 있다.
+  const intervalId = setInterval(() => {
     analyser.getByteFrequencyData(data);
     const average = data.reduce((sum, v) => sum + v, 0) / data.length;
     onLevel(average);
-    rafId = requestAnimationFrame(tick);
-  };
-  tick();
+  }, intervalMs);
 
   return () => {
-    cancelAnimationFrame(rafId);
+    clearInterval(intervalId);
     source.disconnect();
     audioContext.close();
   };

@@ -58,7 +58,9 @@ const Videos: React.FC<VideosProps> = ({
             playsInline
             muted
             ref={el => {
-              if (el) el.srcObject = localStream;
+              if (el && el.srcObject !== localStream) {
+                el.srcObject = localStream;
+              }
             }}
           />
         ) : (
@@ -95,7 +97,9 @@ const Videos: React.FC<VideosProps> = ({
                   backgroundRepeat: 'no-repeat',
                 }}
                 ref={el => {
-                  if (el) el.srcObject = stream;
+                  if (el && el.srcObject !== stream) {
+                    el.srcObject = stream;
+                  }
                 }}
               />
               {nickname && <Nickname type="button">{nickname}</Nickname>}
