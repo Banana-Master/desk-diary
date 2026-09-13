@@ -16,8 +16,6 @@ import { JwtConfigService } from '../config/jwt.config.service';
 import { User } from '@prisma/client';
 import { UpdatePasswordDto } from './dto/update.password.dto';
 import { ImageService } from '../image/image.service';
-import { EmailService } from '../auth/email/email.service';
-import * as uuid from 'uuid';
 //import { randomNickname } from './constant/random-nickname';
 
 @Injectable()
@@ -27,7 +25,6 @@ export class UserService {
     private readonly jwtconfigService: JwtConfigService,
     private readonly jwtService: JwtService,
     private readonly imageService: ImageService,
-    private readonly emailService: EmailService,
   ) {}
 
   async signUp(joinuserDto: JoinUserDto) {
@@ -57,7 +54,6 @@ export class UserService {
 
     // 비밀번호 해싱
     const hashedPassword = await bcrypt.hash(password, 10);
-    const signupVerifyToken = uuid.v1();
 
     // 사용자 생성
     await this.prisma.user.create({
@@ -65,42 +61,10 @@ export class UserService {
         email,
         nickname,
         password: hashedPassword,
-        signupVerifyToken,
-        isEmailVerified: false,
       },
     });
 
-    await this.emailService.sendMemberJoinVerification(
-      email,
-      signupVerifyToken,
-    );
-
     return { message: '회원가입에 성공하였습니다.' };
-  }
-
-  async sendMemberJoinEmail(email: string, signupVerifyToken: string) {
-    await this.emailService.sendMemberJoinVerification(
-      email,
-      signupVerifyToken,
-    );
-  }
-
-  async verifyEmail(signupVerifyToken: string): Promise<string> {
-    const user = await this.prisma.user.findUnique({
-      where: { signupVerifyToken },
-    });
-
-    if (!user) {
-      throw new NotFoundException('유효하지 않은 인증 토큰입니다.');
-    }
-
-    await this.prisma.user.update({
-      where: { userId: user.userId },
-      data: { isEmailVerified: true, signupVerifyToken: signupVerifyToken },
-    });
-
-    // return '이메일이 성공적으로 인증되었습니다.';
-    return 'https://desk-diary.com/confirm-email';
   }
 
   async login(loginuserDto: LoginUserDto, res: Response): Promise<void> {
@@ -113,13 +77,6 @@ export class UserService {
     if (!user || !(await bcrypt.compare(password, user.password))) {
       throw new HttpException(
         '로그인 정보가 올바르지 않습니다.',
-        HttpStatus.UNAUTHORIZED,
-      );
-    }
-
-    if (!user.isEmailVerified) {
-      throw new HttpException(
-        '이메일 인증이 완료되지 않았습니다.',
         HttpStatus.UNAUTHORIZED,
       );
     }

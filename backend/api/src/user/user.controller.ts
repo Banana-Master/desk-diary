@@ -12,7 +12,6 @@ import {
   UseInterceptors,
   UploadedFile,
   BadRequestException,
-  Query,
   UnauthorizedException,
 } from '@nestjs/common';
 import {
@@ -31,8 +30,6 @@ import { JwtAuthGuard } from '../auth/jwt/jwt-auth.guard';
 import { Request } from 'express';
 import { UserService } from './user.service';
 import { JoinUserDto } from './dto/join.user.dto';
-import { VerifyEmailDto } from './dto/verify.email.dto';
-// import { EmailService } from 'src/auth/email/email.service';
 import { LoginUserDto } from './dto/login.user.dto';
 import { UpdateProfileDto } from './dto/update.profile.dto';
 import { UpdatePasswordDto } from './dto/update.password.dto';
@@ -48,15 +45,6 @@ export class UserController {
   @HttpCode(200)
   async createUserAccount(@Body() joinuserDto: JoinUserDto) {
     return await this.userService.signUp(joinuserDto);
-  }
-
-  @ApiOperation({ summary: '회원가입 시 이메일 인증' })
-  @Post('/email-verify')
-  async verifyEmail(@Query() dto: VerifyEmailDto, @Res() res: Response) {
-    const { signupVerifyToken } = dto;
-    // return await this.userService.verifyEmail(signupVerifyToken);
-    const redirectUrl = await this.userService.verifyEmail(signupVerifyToken);
-    return res.redirect(redirectUrl);
   }
 
   @ApiBearerAuth()

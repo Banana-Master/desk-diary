@@ -6,7 +6,6 @@ import MainLayout from '../components/layout/main/MainLayout';
 import { Suspense, lazy } from 'react';
 import TokenRefresher from '../axios/TokenRefresher';
 const Lending = lazy(() => import('../pages/auth/Lending'));
-const ConfirmEmailNotice = lazy(() => import('../pages/auth/ConfirmEmailNotice'));
 const Help = lazy(() => import('../pages/help/Help'));
 const Mypage = lazy(() => import('../pages/mypage/Mypage'));
 const Login = lazy(() => import('../pages/auth/Login'));
@@ -43,7 +42,6 @@ const Router = () => {
         <Route path="/room/:id" element={ <Suspense fallback={<div style={{backgroundColor:'var(--gray-09)'}}></div>}><Room /></Suspense>} />
         <Route path="/auth" element={ <Suspense fallback={<div></div>}><Auth /></Suspense> } />
 
-        <Route path="/confirm-email" element={ <Suspense fallback={<div></div>}><ConfirmEmailNotice /></Suspense>} />
         <Route path="/help" element={ <Suspense fallback={<div></div>}><Help /></Suspense>} />
         <Route path="*" element={<Suspense fallback={<div></div>}><Error /></Suspense>} />
       </Routes>

@@ -87,7 +87,8 @@ const Join: React.FC<JoinProps> = () => {
       axios.post(`${process.env.REACT_APP_SERVER_URL!}/auth/join`, userData),
     {
       onSuccess: () => {
-        navigate('/confirm-email');
+        toast.success('회원가입에 성공했습니다. 로그인해 주세요.');
+        navigate('/login');
       },
       onError: (error: any) => {
         if (error.response) {
@@ -120,16 +121,6 @@ const Join: React.FC<JoinProps> = () => {
               break;
             case message.includes('비밀번호가 비어 있으면 안됩니다.'):
               setPasswordError('비밀번호가 비어 있으면 안됩니다.');
-              break;
-            case message.includes(
-              '비밀번호는 대문자, 소문자, 숫자, 특수문자를 각각 하나 이상 포함해야 합니다',
-            ):
-              setPasswordError(
-                '영문 대소문자, 숫자,특수기호 포함 8~16글자를 입력해주세요.',
-              );
-              break;
-            case message.includes('비밀번호는 8자 이상이어야 합니다'):
-              setPasswordError('비밀번호는 8자 이상이어야 합니다');
               break;
             default:
           }
@@ -200,7 +191,7 @@ const Join: React.FC<JoinProps> = () => {
           <InputBox focused={focusedInput === 'password'}>
             <JoinInput
               type="password"
-              placeholder="영어 대소문자,숫자,특수문자 포함 8자 이상"
+              placeholder="비밀번호를 입력해주세요"
               onChange={e => setUser({ ...user, password: e.target.value })}
               onFocus={() => handleFocusInput('password')}
               onBlur={() => {

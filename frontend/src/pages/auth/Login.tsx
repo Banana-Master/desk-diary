@@ -80,18 +80,12 @@ const Login: React.FC<LoginProps> = () => {
       navigate('/');
     } catch (error: any) {
       if (error.response) {
-        // 이메일 인증이 필요한 에러인지 확인
         if (
-          error.response.status === 401 &&
-          error.response.data?.error.includes('로그인 정보가')
+          error.response.status === 401 ||
+          error.response.status === 400
         ) {
-          // 사용자에게 이메일 인증이 필요하다는 메시지를 보여줌
-          setShowErrorMessage('* 이메일 인증을 완료해 주세요.');
-        } else if (error.response.status === 400) {
-          // 다른 인증 관련 에러 메시지를 처리
           setShowErrorMessage('* 이메일 혹은 비밀번호를 확인 해 주세요');
         } else {
-          // 그 외의 에러 메시지를 처리
           setShowErrorMessage('* 로그인에 실패했습니다. 다시 시도해 주세요.');
         }
       }

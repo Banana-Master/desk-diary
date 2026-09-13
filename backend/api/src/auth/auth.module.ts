@@ -11,7 +11,6 @@ import { AuthController } from './auth.controller';
 import { JwtKakaoStrategy } from './kakao/jwt-social-kakao-strategy';
 import { ImageModule } from '../image/image.module';
 import { JwtGoogleStrategy } from './google/jwt-social-google.strategy';
-import { EmailService } from './email/email.service';
 import { AuthService } from './auth.service';
 
 @Module({
@@ -33,7 +32,6 @@ import { AuthService } from './auth.service';
     AuthService,
     JwtKakaoStrategy,
     JwtGoogleStrategy,
-    EmailService,
   ],
   exports: [JwtStrategy, JwtConfigService],
 })
